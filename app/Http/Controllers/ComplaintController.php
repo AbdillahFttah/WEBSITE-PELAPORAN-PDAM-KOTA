@@ -50,8 +50,6 @@ class ComplaintController extends Controller
         $totalDone = Complaint::where('status', 'done')->count();
         $totalSemua = Complaint::count();
 
-        $complaints = Complaint::orderBy('id', 'asc')->paginate(10);
-
         $labels = [];
         $monthlyData = [];
 
@@ -70,10 +68,39 @@ class ComplaintController extends Controller
             'totalProses',
             'totalDone',
             'totalSemua',
-            'complaints',
             'labels',
             'monthlyData'
         ));
+    }
+
+    public function kelolaLaporan(Request $request)
+    {
+        $query = Complaint::query();
+
+        if ($request->filled('nama_pelapor')) {
+            $query->where('nama_pelapor', 'like', '%' . $request->nama_pelapor . '%');
+        }
+
+        if ($request->filled('bulan')) {
+            $date = Carbon::createFromFormat('Y-m', $request->bulan);
+
+            $query->whereYear('tanggal', $date->year)
+                ->whereMonth('tanggal', $date->month);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('tanggal')) {
+            $query->whereDate('tanggal', $request->tanggal);
+        }
+
+        $complaints = $query->orderBy('id', 'asc')
+            ->paginate(5)
+            ->withQueryString();
+
+        return view('kelola-laporan', compact('complaints'));
     }
 
     public function updateStatus(Request $request, Complaint $complaint)
@@ -101,7 +128,7 @@ class ComplaintController extends Controller
         $complaint->update($data);
 
         return redirect()
-            ->route('dashboard')
+            ->route('complaints.manage')
             ->with('success', 'Status laporan berhasil diperbarui.');
     }
 
@@ -110,17 +137,29 @@ class ComplaintController extends Controller
         $complaint->delete();
 
         return redirect()
-            ->route('dashboard')
+            ->route('complaints.manage')
             ->with('success', 'Data laporan berhasil dihapus.');
     }
 
     public function export(Request $request)
     {
-        $month = $request->get('month', Carbon::now()->month);
-        $year = $request->get('year', Carbon::now()->year);
+        $filters = $request->only([
+            'nama_pelapor',
+            'bulan',
+            'status',
+            'tanggal',
+        ]);
 
-        $fileName = 'rekap-pengaduan-' . $month . '-' . $year . '.xlsx';
+        $fileName = 'rekap-pengaduan';
 
-        return Excel::download(new ComplaintsExport($month, $year), $fileName);
+        if ($request->filled('bulan')) {
+            $fileName .= '-' . $request->bulan;
+        } else {
+            $fileName .= '-' . Carbon::now()->format('Y-m');
+        }
+
+        $fileName .= '.xlsx';
+
+        return Excel::download(new ComplaintsExport($filters), $fileName);
     }
 }

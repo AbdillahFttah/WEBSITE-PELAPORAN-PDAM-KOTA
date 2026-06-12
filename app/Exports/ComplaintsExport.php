@@ -3,25 +3,43 @@
 namespace App\Exports;
 
 use App\Models\Complaint;
+use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class ComplaintsExport implements FromCollection, WithHeadings
 {
-    protected int $month;
-    protected int $year;
+    protected array $filters;
 
-    public function __construct(int $month, int $year)
+    public function __construct(array $filters = [])
     {
-        $this->month = $month;
-        $this->year = $year;
+        $this->filters = $filters;
     }
 
     public function collection()
     {
-        return Complaint::whereMonth('tanggal', $this->month)
-            ->whereYear('tanggal', $this->year)
-            ->orderBy('id', 'asc')
+        $query = Complaint::query();
+
+        if (!empty($this->filters['nama_pelapor'])) {
+            $query->where('nama_pelapor', 'like', '%' . $this->filters['nama_pelapor'] . '%');
+        }
+
+        if (!empty($this->filters['bulan'])) {
+            $date = Carbon::createFromFormat('Y-m', $this->filters['bulan']);
+
+            $query->whereYear('tanggal', $date->year)
+                  ->whereMonth('tanggal', $date->month);
+        }
+
+        if (!empty($this->filters['status'])) {
+            $query->where('status', $this->filters['status']);
+        }
+
+        if (!empty($this->filters['tanggal'])) {
+            $query->whereDate('tanggal', $this->filters['tanggal']);
+        }
+
+        return $query->orderBy('id', 'asc')
             ->get()
             ->values()
             ->map(function ($complaint, $index) {

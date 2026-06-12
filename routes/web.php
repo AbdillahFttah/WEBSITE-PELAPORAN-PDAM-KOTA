@@ -10,6 +10,9 @@ Route::post('/pengaduan', [ComplaintController::class, 'store'])->name('complain
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [ComplaintController::class, 'dashboard'])->name('dashboard');
 
+    Route::get('/kelola-laporan', [ComplaintController::class, 'kelolaLaporan'])
+        ->name('complaints.manage');
+
     Route::patch('/complaints/{complaint}/status', [ComplaintController::class, 'updateStatus'])
         ->name('complaints.updateStatus');
 
