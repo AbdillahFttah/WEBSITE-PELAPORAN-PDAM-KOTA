@@ -268,8 +268,7 @@
                 @if ($complaints->hasPages())
                     <div class="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <p class="text-sm text-slate-500">
-                            Menampilkan {{ $complaints->firstItem() }} sampai {{ $complaints->lastItem() }}
-                            dari {{ $complaints->total() }} laporan
+                            
                         </p>
 
                         <div class="flex items-center gap-2">
